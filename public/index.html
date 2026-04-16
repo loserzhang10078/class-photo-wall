@@ -3,13 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>班级照片留言墙</title>
+<title>班级照片留言墙（多人共享版）</title>
 <style>
   *{margin:0;padding:0;box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica,Arial}
-  body{background:#f4f6f8;padding:20px;max-width:1000px;margin:0 auto;position:relative;padding-bottom:80px}
+  body{background:#f4f6f8;padding:20px;max-width:1000px;margin:0 auto;position:relative;padding-bottom:120px}
 
-  /* 顶部功能区 */
-  .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding:0 4px}
+  .top-bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding:0 4px;flex-wrap:wrap;gap:10px}
   .identity-area{display:flex;align-items:center;gap:8px}
   .identity-label{font-size:14px;color:#666}
   .identity-input{padding:8px 10px;border:1px solid #e1e4e8;border-radius:6px;font-size:13px;width:180px}
@@ -18,30 +17,32 @@
   .admin-btn{padding:8px 12px;border:none;border-radius:6px;background:#ff4d4f;color:white;font-size:13px;cursor:pointer}
   .admin-tips{font-size:12px;color:#999}
 
-  /* 头部标题 */
+  .log-box{margin:10px 0;padding:10px;border-radius:8px;background:#f8f9fa;border:1px solid #e1e4e8;font-size:12px;color:#333;min-height:60px;max-height:150px;overflow-y:auto}
+  .log-success{color:#67c23a}
+  .log-error{color:#f56c6c}
+  .log-info{color:#409eff}
+
   .header{text-align:center;margin-bottom:20px}
   .header h1{font-size:24px;color:#222}
   .header p{color:#666;margin-top:6px}
 
-  /* 人物专辑栏 */
   .album-wrap{margin-bottom:20px}
   .album-title{font-size:16px;color:#333;margin-bottom:12px;font-weight:500;padding-left:4px}
-  .album-scroll{display:flex;overflow-x:auto;gap:16px;padding:4px 0}
-  .album-card{width:110px;flex-shrink:0;cursor:pointer;transition:all 0.2s}
+  .album-scroll{display:flex;overflow-x:auto;gap:16px;padding:4px 0;scrollbar-width:thin}
+  .album-card{width:110px;flex-shrink:0;cursor:pointer;transition:all 0.2s;text-align:center}
   .album-card:hover{transform:scale(1.05)}
-  .album-cover{width:110px;height:110px;border-radius:14px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.1);margin-bottom:6px}
-  .album-name{text-align:center;font-size:13px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
-  .album-card.active .album-cover{border:2px solid #409eff}
+  .album-cover{width:110px;height:110px;border-radius:14px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,0.1);margin-bottom:6px;border:2px solid transparent}
+  .album-card.active .album-cover{border-color:#409eff}
+  .album-name{font-size:13px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 4px}
 
-  /* 照片展示区 */
-  .album-photos{display:flex;overflow-x:auto;gap:12px;padding:10px 0;margin-bottom:20px}
+  .album-photos{display:flex;flex-wrap:wrap;gap:12px;padding:10px 0;margin-bottom:20px}
   .album-photo{width:110px;height:110px;border-radius:14px;object-fit:cover;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.1);transition:all 0.2s}
-  .album-photo:hover{transform:scale(1.05);box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+  .album-photo:hover{transform:scale(1.05)}
+  .photo-empty{width:100%;text-align:center;padding:20px;color:#999;font-size:14px}
 
-  /* 大图+留言区 */
-  .photo-viewer{background:white;border-radius:16px;overflow:hidden;box-shadow:0 3px 15px rgba(0,0,0,0.07);margin-bottom:20px}
-  .photo-viewer img{width:100%;max-height:500px;object-fit:cover}
-  .hot-comment{padding:14px 18px;background:#e8f3ff;border-left:4px solid #409eff;margin:0 18px;margin-top:10px;border-radius:8px}
+  .photo-viewer{background:white;border-radius:16px;overflow:hidden;box-shadow:0 3px 15px rgba(0,0,0,0.07);margin-bottom:20px;padding:10px;display:none}
+  .photo-viewer img{width:100%;max-height:500px;object-fit:contain;border-radius:8px}
+  .hot-comment{padding:14px 18px;background:#e8f3ff;border-left:4px solid #409eff;margin:10px 18px;border-radius:8px}
   .hot-comment h4{color:#409eff;font-size:14px;margin-bottom:4px}
   .hot-comment .text{font-size:15px;color:#222}
   .hot-comment .name{font-size:12px;color:#666;margin-top:4px}
@@ -57,10 +58,9 @@
   .comment .text{margin-top:4px;font-size:14px}
   .del-cmt{position:absolute;right:0;top:6px;background:#ff4d4f;color:white;border:none;border-radius:4px;font-size:12px;padding:2px 6px;cursor:pointer}
 
-  /* 超轻量上传区 */
-  .upload-wrap{position:fixed;bottom:0;left:0;width:100%;background:white;border-top:1px solid #e1e4e8;box-shadow:0 -1px 4px rgba(0,0,0,0.03);z-index:99;padding:8px 12px}
+  .upload-wrap{position:fixed;bottom:0;left:0;width:100%;background:white;border-top:1px solid #e1e4e8;box-shadow:0 -1px 4px rgba(0,0,0,0.03);z-index:99;padding:10px 12px}
   .upload-toggle{width:100%;padding:8px;border:1px solid #409eff;border-radius:6px;background:white;color:#409eff;cursor:pointer;font-size:13px;text-align:center;margin-bottom:8px}
-  .upload-content{display:none;gap:8px;flex-wrap:wrap}
+  .upload-content{display:none;gap:8px;flex-wrap:wrap;align-items:center}
   .upload-content.show{display:flex}
   .album-control{flex:1;min-width:200px;display:flex;gap:6px}
   .album-select-mini{flex:1;padding:8px;border:1px solid #e1e4e8;border-radius:6px;font-size:13px}
@@ -70,27 +70,18 @@
   .file-text{display:block;padding:8px 12px;border:1px solid #e1e4e8;border-radius:6px;font-size:13px;color:#666;background:white}
   .upload-btn-mini{flex:none;padding:8px 20px;border:none;border-radius:6px;background:#409eff;color:white;font-size:13px;cursor:pointer}
 
-  /* 空状态 */
-  .empty{text-align:center;padding:40px 20px;color:#999}
-  .photo-empty{text-align:center;padding:20px;color:#999;font-size:14px}
-
-  /* 弹窗样式 */
-  .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:999;display:none;justify-content:center;align-items:center;padding:20px}
-  .modal-content{background:white;border-radius:12px;padding:16px;width:100%;max-width:300px}
-  .modal-title{font-size:15px;color:#333;margin-bottom:12px;text-align:center;font-weight:500}
-  .modal-input{width:100%;padding:8px;border:1px solid #e1e4e8;border-radius:6px;margin-bottom:10px;font-size:13px}
-  .modal-btn-group{display:flex;gap:6px}
-  .modal-btn{flex:1;padding:8px;border:none;border-radius:6px;font-size:13px;cursor:pointer}
+  .modal{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:100;justify-content:center;align-items:center;display:none}
+  .modal-content{background:white;border-radius:12px;padding:20px;width:90%;max-width:300px}
+  .modal-title{font-size:16px;margin-bottom:15px;text-align:center}
+  .modal-input{width:100%;padding:8px;border:1px solid #e1e4e8;border-radius:6px;margin-bottom:15px;font-size:14px}
+  .modal-btn-group{display:flex;gap:10px}
+  .modal-btn{flex:1;padding:8px;border:none;border-radius:6px;cursor:pointer}
   .modal-btn.confirm{background:#409eff;color:white}
-  .modal-btn.cancel{background:#f5f7fa;color:#666}
-
-  /* 提示弹窗 */
-  .tips-modal{position:fixed;top:50%;left:50%;transform:translate(-50%, -50%);background:rgba(0,0,0,0.7);color:white;padding:10px 18px;border-radius:6px;font-size:13px;z-index:1000;display:none}
+  .modal-btn.cancel{background:#f5f5f5;color:#666}
 </style>
 </head>
-
 <body>
-<!-- 顶部功能区 -->
+
 <div class="top-bar">
   <div class="identity-area">
     <span class="identity-label">你的身份：</span>
@@ -103,31 +94,28 @@
   </div>
 </div>
 
-<!-- 头部标题 -->
-<div class="header">
-  <h1>📷 班级照片留言墙</h1>
-  <p>选择人物专辑 → 查看照片 → 留言互动</p>
+<div class="log-box" id="uploadLog">
+  [系统] 正在连接服务器...
 </div>
 
-<!-- 人物专辑栏 -->
+<div class="header">
+  <h1>📷 班级照片留言墙（多人共享版）</h1>
+  <p>所有人上传的照片/评论都能共享</p>
+</div>
+
 <div class="album-wrap">
   <div class="album-title">👥 人物专辑栏</div>
   <div class="album-scroll" id="albumScroll"></div>
 </div>
 
-<!-- 照片展示区 -->
 <div class="album-photos" id="albumPhotos">
   <div class="photo-empty">请先选择上方的人物专辑～</div>
 </div>
 
-<!-- 空状态提示 -->
-<div class="empty" id="empty">暂无专辑，快来创建并上传照片吧～</div>
-
-<!-- 大图+留言区 -->
-<div class="photo-viewer" id="viewer" style="display:none">
-  <img id="bigImg">
+<div class="photo-viewer" id="viewer">
+  <img id="bigImg" src="">
   <div id="hotArea"></div>
-  <div class="photo-op-bar" id="photoOpBar" style="display:none">
+  <div class="photo-op-bar" id="photoOpBar">
     <button class="photo-del-btn" onclick="deletePhoto()">🗑️ 删除照片</button>
   </div>
   <div class="comment-area">
@@ -137,11 +125,10 @@
   </div>
 </div>
 
-<!-- 创建专辑弹窗 -->
 <div class="modal" id="createAlbumModal">
   <div class="modal-content">
-    <div class="modal-title">创建专辑</div>
-    <input type="text" class="modal-input" id="albumNameInput" placeholder="输入专辑名（如：杨武明）">
+    <div class="modal-title">创建新专辑</div>
+    <input type="text" id="albumNameInput" class="modal-input" placeholder="输入专辑名称（如：三年级二班）">
     <div class="modal-btn-group">
       <button class="modal-btn confirm" onclick="confirmCreateAlbum()">确定</button>
       <button class="modal-btn cancel" onclick="closeCreateAlbumModal()">取消</button>
@@ -149,10 +136,6 @@
   </div>
 </div>
 
-<!-- 提示弹窗 -->
-<div class="tips-modal" id="tipsModal"></div>
-
-<!-- 超轻量上传区 -->
 <div class="upload-wrap">
   <button class="upload-toggle" onclick="toggleUpload()">
     📤 上传照片
@@ -176,386 +159,223 @@
 </div>
 
 <script>
-const ADMIN_PASSWORD = "123456";
-// 修复：初始化数据时增加容错，避免localStorage数据异常
-let albumData = [];
-let photoData = [];
-try {
-  albumData = JSON.parse(localStorage.getItem('albumData')) || [];
-  photoData = JSON.parse(localStorage.getItem('photoData')) || [];
-} catch (e) {
-  albumData = [];
-  photoData = [];
-  localStorage.setItem('albumData', JSON.stringify(albumData));
-  localStorage.setItem('photoData', JSON.stringify(photoData));
-}
-
+const API_BASE = window.location.origin;
 let currentAlbumId = '';
 let currentPhotoId = '';
 let isAdminVerified = false;
 
-// 基础工具函数
-function generateId() {
-  return Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-}
-function time(t) {
-  const d = new Date(t);
-  return `${d.getMonth()+1}/${d.getDate()} ${d.getHours().toString().padStart(2,'0')}:${d.getMinutes().toString().padStart(2,'0')}`;
-}
-function saveData() {
-  // 修复：确保数据能正确保存到本地
-  localStorage.setItem('albumData', JSON.stringify(albumData));
-  localStorage.setItem('photoData', JSON.stringify(photoData));
-}
-function showTips(text, duration = 2000) {
-  const modal = document.getElementById('tipsModal');
-  modal.innerText = text;
-  modal.style.display = 'block';
-  setTimeout(() => modal.style.display = 'none', duration);
+function log(message, type = 'info') {
+  const logBox = document.getElementById('uploadLog');
+  const time = new Date().toLocaleTimeString();
+  const className = type === 'success' ? 'log-success' : type === 'error' ? 'log-error' : 'log-info';
+  const logHtml = `<div class="${className}">[${time}] ${message}</div>`;
+  logBox.innerHTML = logHtml + logBox.innerHTML.split('<div').slice(0, 10).join('<div');
 }
 
-// 管理员验证
-function verifyAdmin() {
-  const inputPwd = document.getElementById('adminPwd').value;
-  if (inputPwd === ADMIN_PASSWORD) {
+async function request(url, options = {}) {
+  try {
+    const response = await fetch(`${API_BASE}${url}`, {
+      headers: { 'Content-Type': 'application/json', ...options.headers },
+      ...options
+    });
+    return await response.json();
+  } catch (err) {
+    log(`网络错误：${err.message}`, 'error');
+    return { code: 500, msg: '网络错误' };
+  }
+}
+
+async function verifyAdmin() {
+  const pwd = document.getElementById('adminPwd').value;
+  const res = await request('/api/verify-admin', {
+    method: 'POST', body: JSON.stringify({ pwd })
+  });
+  if (res.code === 200) {
     isAdminVerified = true;
     document.getElementById('adminStatus').innerText = '已验证';
-    document.getElementById('adminStatus').style.color = '#409eff';
-    if (currentPhotoId) document.getElementById('photoOpBar').style.display = 'flex';
-    showTips('管理员验证成功！');
+    document.getElementById('adminStatus').style.color = '#67c23a';
+    log('管理员验证成功', 'success');
   } else {
     isAdminVerified = false;
     document.getElementById('adminStatus').innerText = '验证失败';
-    document.getElementById('adminStatus').style.color = '#ff4d4f';
-    showTips('密码错误！');
+    document.getElementById('adminStatus').style.color = '#f56c6c';
+    log(res.msg, 'error');
   }
 }
 
-// 上传区展开/收起
 function toggleUpload() {
   const content = document.getElementById('uploadContent');
   content.classList.toggle('show');
-  // 修复：每次展开强制更新专辑列表，确保最新专辑能显示
   if (content.classList.contains('show')) {
-    setTimeout(() => {
-      updateAlbumSelect();
-    }, 100);
+    setTimeout(loadAlbums, 100);
   }
 }
 
-// 更新文件选择框文字
 function updateFileText() {
   const fileInput = document.getElementById('uploadFile');
   const fileText = document.getElementById('fileText');
-  if (fileInput.files && fileInput.files.length > 0) {
-    fileText.innerText = `📁 ${fileInput.files[0].name}`;
+  if (fileInput.files.length > 0) {
+    const file = fileInput.files[0];
+    fileText.innerText = `📁 ${file.name} (${(file.size/1024).toFixed(1)}KB)`;
   } else {
     fileText.innerText = '📁 选择照片文件';
   }
 }
 
-// 专辑管理
-function openCreateAlbumModal() {
-  document.getElementById('albumNameInput').value = '';
-  document.getElementById('createAlbumModal').style.display = 'flex';
-}
-function closeCreateAlbumModal() {
-  document.getElementById('createAlbumModal').style.display = 'none';
-}
-function confirmCreateAlbum() {
-  const albumName = document.getElementById('albumNameInput').value.trim();
-  if (!albumName) {
-    showTips('请输入专辑名！');
-    return;
+async function loadAlbums() {
+  const res = await request('/api/albums');
+  if (res.code === 200) {
+    renderAlbums(res.data);
+    updateAlbumSelect(res.data);
   }
-  // 修复：避免创建重复名称的专辑（可选优化）
-  const isExist = albumData.some(album => album.name === albumName);
-  if (isExist) {
-    showTips('该专辑名称已存在！');
-    return;
-  }
-  const newAlbum = {
-    id: generateId(),
-    name: albumName,
-    coverUrl: ''
-  };
-  albumData.push(newAlbum);
-  saveData();
-  renderAlbumScroll();
-  updateAlbumSelect();
-  closeCreateAlbumModal();
-  showTips(`专辑「${albumName}」创建成功！`);
 }
-function updateAlbumSelect() {
-  const albumSelect = document.getElementById('albumSelect');
-  // 修复：清空后重新添加，避免重复选项
-  albumSelect.innerHTML = '';
-  // 先加默认选项
-  const defaultOption = document.createElement('option');
-  defaultOption.value = '';
-  defaultOption.innerText = '请选择专辑';
-  albumSelect.appendChild(defaultOption);
-  // 遍历添加所有专辑
-  albumData.forEach(album => {
-    const option = document.createElement('option');
-    option.value = album.id;
-    option.innerText = album.name;
-    albumSelect.appendChild(option);
-  });
-}
-function renderAlbumScroll() {
+
+function renderAlbums(albums) {
   const albumScroll = document.getElementById('albumScroll');
-  const empty = document.getElementById('empty');
-  empty.style.display = albumData.length ? 'none' : 'block';
-  albumScroll.innerHTML = '';
-  
-  albumData.forEach(album => {
-    const card = document.createElement('div');
-    card.className = `album-card ${album.id === currentAlbumId ? 'active' : ''}`;
-    const cover = document.createElement('img');
-    cover.className = 'album-cover';
-    cover.src = album.coverUrl || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="110" height="110" viewBox="0 0 24 24" fill="%23e8f3ff"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></svg>';
-    const name = document.createElement('div');
-    name.className = 'album-name';
-    name.innerText = album.name;
-    
-    card.appendChild(cover);
-    card.appendChild(name);
-    card.onclick = () => {
-      currentAlbumId = album.id;
-      renderAlbumScroll();
-      renderAlbumPhotos();
-      // 优化：选中专辑后，自动同步到上传区的下拉框
-      document.getElementById('albumSelect').value = album.id;
-    };
-    albumScroll.appendChild(card);
+  if (albums.length === 0) {
+    albumScroll.innerHTML = '<div class="photo-empty">暂无专辑</div>';
+    return;
+  }
+  albumScroll.innerHTML = albums.map(album => `
+    <div class="album-card ${album.id === currentAlbumId ? 'active' : ''}" onclick="selectAlbum('${album.id}')">
+      <img class="album-cover" src="${album.coverUrl || 'data:image/svg+xml;utf8,<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"110\" height=\"110\" viewBox=\"0 0 24 24\" fill=\"%23e8f3ff\"><path d=\"M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z\"/></svg>'}">
+      <div class="album-name">${album.name}</div>
+    </div>
+  `).join('');
+}
+
+function updateAlbumSelect(albums) {
+  const albumSelect = document.getElementById('albumSelect');
+  albumSelect.innerHTML = '<option value="">请选择专辑</option>';
+  albums.forEach(album => {
+    const opt = document.createElement('option');
+    opt.value = album.id;
+    opt.innerText = album.name;
+    albumSelect.appendChild(opt);
   });
 }
 
-// 照片展示
-function renderAlbumPhotos() {
-  const albumPhotos = document.getElementById('albumPhotos');
-  if (!currentAlbumId) {
-    albumPhotos.innerHTML = '<div class="photo-empty">请先选择上方的人物专辑～</div>';
-    return;
-  }
-  
-  const albumPhotoList = photoData.filter(photo => photo.albumId === currentAlbumId);
-  if (albumPhotoList.length === 0) {
-    albumPhotos.innerHTML = '<div class="photo-empty">该专辑暂无照片～</div>';
-    return;
-  }
-  
-  albumPhotos.innerHTML = '';
-  albumPhotoList.forEach(photo => {
-    const img = document.createElement('img');
-    img.src = photo.url;
-    img.className = 'album-photo';
-    img.onclick = () => openPhoto(photo.id);
-    albumPhotos.appendChild(img);
-  });
+async function selectAlbum(albumId) {
+  currentAlbumId = albumId;
+  await loadAlbums();
+  await loadPhotos(albumId);
 }
-function openPhoto(photoId) {
+
+async function loadPhotos(albumId) {
+  const res = await request(`/api/photos/${albumId}`);
+  const albumPhotos = document.getElementById('albumPhotos');
+  if (res.code === 200 && res.data.length > 0) {
+    albumPhotos.innerHTML = res.data.map(photo => `
+      <img class="album-photo" src="${API_BASE}${photo.url}" onclick="openPhoto('${photo.id}')">
+    `).join('');
+  } else {
+    albumPhotos.innerHTML = '<div class="photo-empty">该专辑暂无照片</div>';
+  }
+}
+
+async function openPhoto(photoId) {
   currentPhotoId = photoId;
-  const photo = photoData.find(item => item.id === photoId);
-  if (!photo) return;
+  const res = await request(`/api/comments/${photoId}`);
+  const comments = res.data || [];
+  const albumRes = await request(`/api/photos/${currentAlbumId}`);
+  const photo = albumRes.data.find(p => p.id === photoId);
   
   document.getElementById('viewer').style.display = 'block';
-  document.getElementById('bigImg').src = photo.url;
-  document.getElementById('photoOpBar').style.display = isAdminVerified ? 'flex' : 'none';
-
-  const hot = document.getElementById('hotArea');
-  if (photo.comments && photo.comments.length) {
-    const top = photo.comments.reduce((a, b) => (a.like || 0) > (b.like || 0) ? a : b, photo.comments[0]);
-    hot.innerHTML = `
+  document.getElementById('bigImg').src = API_BASE + photo.url;
+  
+  const hotArea = document.getElementById('hotArea');
+  if (comments.length > 0) {
+    const c = comments[0];
+    hotArea.innerHTML = `
       <div class="hot-comment">
-        <h4>🔥 热门留言</h4>
-        <div class="text">${top.text}</div>
-        <div class="name">${top.nick || '匿名'} · ${time(top.time)}</div>
+        <h4>💬 最新留言</h4>
+        <div class="text">${c.text}</div>
+        <div class="name">${c.nick || '匿名'}</div>
       </div>
     `;
   } else {
-    hot.innerHTML = '';
+    hotArea.innerHTML = '<div class="hot-comment"><h4>💬 暂无留言</h4></div>';
   }
-
+  
   const commentList = document.getElementById('commentList');
-  commentList.innerHTML = photo.comments?.map((c, cIdx) => `
+  commentList.innerHTML = comments.map((c, i) => `
     <div class="comment">
       <span class="name">${c.nick || '匿名'}</span>
-      <span class="time">${time(c.time)}</span>
       <div class="text">${c.text}</div>
-      ${isAdminVerified ? `<button class="del-cmt" onclick="deleteComment(${cIdx})">删</button>` : ''}
+      ${isAdminVerified ? `<button class="del-cmt" onclick="deleteComment('${c.id}')">删</button>` : ''}
     </div>
-  `).join('') || '<div style="color:#999; text-align:center; padding:10px">快来抢第一条留言～</div>';
+  `).join('');
   
-  document.getElementById('viewer').scrollIntoView({ behavior: 'smooth' });
+  document.getElementById('photoOpBar').style.display = isAdminVerified ? 'flex' : 'none';
 }
 
-// 核心修复：上传照片逻辑
-function uploadPhoto() {
-  // 1. 先获取专辑ID（修复：增加多重校验）
-  const albumSelect = document.getElementById('albumSelect');
-  let targetAlbumId = albumSelect.value;
-  
-  // 2. 校验专辑
-  if (!targetAlbumId) {
-    if (albumData.length === 0) {
-      // 无专辑时自动创建
-      showTips('自动创建「默认专辑」');
-      const newAlbum = {id: generateId(), name: '默认专辑', coverUrl: ''};
-      albumData.push(newAlbum);
-      saveData();
-      renderAlbumScroll();
-      targetAlbumId = newAlbum.id;
-      // 同步更新下拉框
-      updateAlbumSelect();
-      albumSelect.value = targetAlbumId;
-    } else {
-      showTips('请先选择要上传的专辑！');
-      return;
-    }
+function openCreateAlbumModal() { document.getElementById('createAlbumModal').style.display = 'flex'; }
+function closeCreateAlbumModal() { document.getElementById('createAlbumModal').style.display = 'none'; }
+
+async function confirmCreateAlbum() {
+  const name = document.getElementById('albumNameInput').value.trim();
+  if (!name) return;
+  const res = await request('/api/albums', {
+    method: 'POST', body: JSON.stringify({ name })
+  });
+  if (res.code === 200) {
+    closeCreateAlbumModal();
+    await loadAlbums();
   }
-  
-  // 3. 校验文件（修复：增加文件类型/大小校验）
+}
+
+async function uploadPhoto() {
+  const albumId = document.getElementById('albumSelect').value;
   const fileInput = document.getElementById('uploadFile');
-  if (!fileInput.files || fileInput.files.length === 0) {
-    showTips('请选择要上传的照片！');
+  if (!albumId || !fileInput.files.length) {
+    log('请选择专辑和照片', 'error');
     return;
   }
-  const file = fileInput.files[0];
-  // 校验文件类型
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
-  if (!allowedTypes.includes(file.type)) {
-    showTips('仅支持JPG/PNG/GIF格式的照片！');
-    return;
+  const formData = new FormData();
+  formData.append('photo', fileInput.files[0]);
+  formData.append('albumId', albumId);
+  
+  const res = await fetch(`${API_BASE}/api/photos`, { method: 'POST', body: formData });
+  const data = await res.json();
+  if (data.code === 200) {
+    log('上传成功', 'success');
+    await loadAlbums();
+    await loadPhotos(albumId);
+    document.getElementById('uploadContent').classList.remove('show');
+    fileInput.value = '';
+    document.getElementById('fileText').innerText = '📁 选择照片文件';
+  } else {
+    log(data.msg, 'error');
   }
-  // 校验文件大小（限制10MB以内）
-  if (file.size > 10 * 1024 * 1024) {
-    showTips('照片大小不能超过10MB！');
-    return;
-  }
-
-  // 4. 读取并上传文件（修复：增加异常捕获）
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    try {
-      const newPhoto = {
-        id: generateId(),
-        albumId: targetAlbumId,
-        url: e.target.result,
-        time: Date.now(),
-        comments: []
-      };
-      // 添加到照片列表
-      photoData.push(newPhoto);
-      
-      // 更新专辑封面（如果是该专辑第一张照片）
-      const targetAlbum = albumData.find(album => album.id === targetAlbumId);
-      if (targetAlbum && !targetAlbum.coverUrl) {
-        targetAlbum.coverUrl = e.target.result;
-      }
-      
-      // 保存数据
-      saveData();
-      
-      // 刷新界面
-      renderAlbumScroll();
-      currentAlbumId = targetAlbumId;
-      renderAlbumPhotos();
-      openPhoto(newPhoto.id);
-      
-      // 重置上传区
-      document.getElementById('uploadContent').classList.remove('show');
-      document.getElementById('fileText').innerText = '📁 选择照片文件';
-      fileInput.value = ''; // 清空文件选择
-      
-      showTips('照片上传成功！');
-    } catch (err) {
-      showTips('上传失败：' + err.message);
-      console.error('上传错误：', err);
-    }
-  };
-  // 处理读取失败
-  reader.onerror = function() {
-    showTips('照片读取失败，请重试！');
-  };
-  reader.readAsDataURL(file);
 }
 
-// 删除照片
-function deletePhoto() {
-  if (!isAdminVerified) {
-    showTips('请先验证管理员！');
-    return;
-  }
-  if (!confirm("确定删除这张照片？")) return;
-  
-  const photo = photoData.find(item => item.id === currentPhotoId);
-  if (!photo) return;
-  const deletedAlbumId = photo.albumId;
-  
-  photoData = photoData.filter(item => item.id !== currentPhotoId);
-  const album = albumData.find(item => item.id === deletedAlbumId);
-  const albumPhotos = photoData.filter(item => item.albumId === deletedAlbumId);
-  if (album && album.coverUrl === photo.url) {
-    album.coverUrl = albumPhotos.length > 0 ? albumPhotos[0].url : '';
-  }
-  
-  saveData();
-  renderAlbumScroll();
-  if (currentAlbumId === deletedAlbumId) renderAlbumPhotos();
-  
+async function deletePhoto() {
+  if (!isAdminVerified) return;
+  const pwd = document.getElementById('adminPwd').value;
+  await request(`/api/photos/${currentPhotoId}?pwd=${pwd}`, { method: 'DELETE' });
   document.getElementById('viewer').style.display = 'none';
-  showTips('照片删除成功！');
+  await loadPhotos(currentAlbumId);
 }
 
-// 评论管理
-function sendComment() {
+async function sendComment() {
   const text = document.getElementById('msgInput').value.trim();
-  const nick = document.getElementById('commentIdentity').value.trim() || '匿名同学';
-  if (!text || !currentPhotoId) {
-    showTips('请输入评论内容！');
-    return;
-  }
-
-  const photo = photoData.find(item => item.id === currentPhotoId);
-  if (!photo) return;
-  
-  photo.comments = photo.comments || [];
-  photo.comments.push({nick, text, time: Date.now(), like:0});
-  saveData();
-  openPhoto(currentPhotoId);
+  const nick = document.getElementById('commentIdentity').value.trim() || '匿名';
+  if (!text || !currentPhotoId) return;
+  await request('/api/comments', {
+    method: 'POST', body: JSON.stringify({ photoId: currentPhotoId, nick, text })
+  });
+  await openPhoto(currentPhotoId);
   document.getElementById('msgInput').value = '';
-  showTips('评论提交成功！');
-}
-function deleteComment(cIdx) {
-  if (!isAdminVerified) {
-    showTips('请先验证管理员！');
-    return;
-  }
-  if (!confirm("确定删除这条评论？")) return;
-
-  const photo = photoData.find(item => item.id === currentPhotoId);
-  if (!photo || !photo.comments) return;
-  
-  photo.comments.splice(cIdx, 1);
-  saveData();
-  openPhoto(currentPhotoId);
-  showTips('评论删除成功！');
 }
 
-// 初始化（修复：确保初始化完整）
-function init() {
-  renderAlbumScroll();
-  renderAlbumPhotos();
-  updateAlbumSelect();
-  // 修复：初始化时清空文件选择框
-  document.getElementById('uploadFile').value = '';
+async function deleteComment(commentId) {
+  if (!isAdminVerified) return;
+  const pwd = document.getElementById('adminPwd').value;
+  await request(`/api/comments/${commentId}?pwd=${pwd}`, { method: 'DELETE' });
+  await openPhoto(currentPhotoId);
 }
-// 页面加载完成后初始化
-window.onload = init;
+
+window.onload = loadAlbums;
 </script>
 </body>
 </html>
-
-
