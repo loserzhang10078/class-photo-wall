@@ -1,49 +1,51 @@
-// 安装依赖：npm install express cors multer fs-extra uuid
+// 安装依赖：npm install express cors multer uuid @vercel/kv
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const fs = require('fs-extra');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const { kv } = require('@vercel/kv');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public')); // 静态文件目录（放前端页面）
+app.use(express.static('public'));
 
-// 配置存储路径
-const PHOTO_DIR = path.join(__dirname, 'uploads/photos');
-const DATA_FILE = path.join(__dirname, 'data.json');
-const ADMIN_PASSWORD = '123456'; // 管理员密码
+// 管理员密码
+const ADMIN_PASSWORD = '123456';
 
-// 初始化目录和数据文件
-fs.ensureDirSync(PHOTO_DIR);
-if (!fs.existsSync(DATA_FILE)) {
-  fs.writeJsonSync(DATA_FILE, {
-    albums: [], // 专辑列表
-    photos: [], // 照片列表
-    comments: [] // 评论列表
-  }, { spaces: 2 });
+// 初始化 KV 存储
+const DATA_KEY = 'class-photo-wall-data';
+const UPLOAD_DIR = path.join(__dirname, 'uploads/photos');
+
+// 初始化数据（KV为空时写入初始结构）
+async function initData() {
+  const data = await kv.get(DATA_KEY);
+  if (!data) {
+    await kv.set(DATA_KEY, {
+      albums: [],
+      photos: [],
+      comments: []
+    });
+  }
 }
+initData();
 
 // 读取/保存数据
-const readData = () => fs.readJsonSync(DATA_FILE);
-const saveData = (data) => fs.writeJsonSync(DATA_FILE, data, { spaces: 2 });
+async function readData() {
+  return await kv.get(DATA_KEY);
+}
+async function saveData(data) {
+  await kv.set(DATA_KEY, data);
+}
 
-// 配置multer上传（处理图片文件）
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, PHOTO_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const filename = `${uuidv4()}${ext}`;
-    cb(null, filename);
-  }
-});
+// 配置multer上传（Vercel 无服务器环境用内存存储）
+const storage = multer.memoryStorage();
 const upload = multer({
   storage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 限制20MB
+  limits: { fileSize: 10 * 1024 * 1024 }, // 限制10MB
   fileFilter: (req, file, cb) => {
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/jpg'];
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -54,18 +56,17 @@ const upload = multer({
 
 // ------------------- 接口定义 -------------------
 // 1. 获取所有专辑
-app.get('/api/albums', (req, res) => {
-  const data = readData();
+app.get('/api/albums', async (req, res) => {
+  const data = await readData();
   res.json({ code: 200, data: data.albums });
 });
 
 // 2. 创建专辑
-app.post('/api/albums', (req, res) => {
+app.post('/api/albums', async (req, res) => {
   const { name } = req.body;
   if (!name) return res.json({ code: 400, msg: '请输入专辑名称' });
   
-  const data = readData();
-  // 检查重名
+  const data = await readData();
   if (data.albums.some(album => album.name === name)) {
     return res.json({ code: 400, msg: '专辑名称已存在' });
   }
@@ -77,20 +78,20 @@ app.post('/api/albums', (req, res) => {
     createTime: Date.now()
   };
   data.albums.push(newAlbum);
-  saveData(data);
+  await saveData(data);
   res.json({ code: 200, msg: '创建成功', data: newAlbum });
 });
 
 // 3. 获取专辑下的所有照片
-app.get('/api/photos/:albumId', (req, res) => {
+app.get('/api/photos/:albumId', async (req, res) => {
   const { albumId } = req.params;
-  const data = readData();
+  const data = await readData();
   const photos = data.photos.filter(photo => photo.albumId === albumId);
   res.json({ code: 200, data: photos });
 });
 
-// 4. 上传照片
-app.post('/api/photos', upload.single('photo'), (req, res) => {
+// 4. 上传照片（Base64 存储到 KV，避免文件丢失）
+app.post('/api/photos', upload.single('photo'), async (req, res) => {
   try {
     const { albumId } = req.body;
     if (!albumId) return res.json({ code: 400, msg: '请选择专辑' });
@@ -98,90 +99,98 @@ app.post('/api/photos', upload.single('photo'), (req, res) => {
     const file = req.file;
     if (!file) return res.json({ code: 400, msg: '请选择照片文件' });
     
-    // 照片访问地址
-    const photoUrl = `/uploads/photos/${file.filename}`;
+    // 转成Base64存储
+    const base64 = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+    const photoId = uuidv4();
+    const photoUrl = `/api/photos/${photoId}`;
     
-    const data = readData();
-    // 检查专辑是否存在
+    const data = await readData();
     const album = data.albums.find(item => item.id === albumId);
     if (!album) return res.json({ code: 400, msg: '专辑不存在' });
     
-    // 创建照片记录
     const newPhoto = {
-      id: uuidv4(),
+      id: photoId,
       albumId,
       url: photoUrl,
-      filename: file.filename,
       createTime: Date.now()
     };
     data.photos.push(newPhoto);
     
-    // 如果是专辑第一张照片，设置为封面
     if (!album.coverUrl) {
       album.coverUrl = photoUrl;
     }
     
-    saveData(data);
+    await saveData(data);
+    // 把Base64也存到KV，方便接口返回
+    await kv.set(`photo:${photoId}`, base64);
     res.json({ code: 200, msg: '上传成功', data: newPhoto });
   } catch (err) {
     res.json({ code: 500, msg: '上传失败：' + err.message });
   }
 });
 
-// 5. 删除照片
-app.delete('/api/photos/:photoId', (req, res) => {
+// 5. 照片接口（返回Base64图片）
+app.get('/api/photos/:photoId', async (req, res) => {
+  const { photoId } = req.params;
+  const base64 = await kv.get(`photo:${photoId}`);
+  if (!base64) return res.status(404).send('Not found');
+  
+  // 解析Base64
+  const matches = base64.match(/^data:(.+);base64,(.+)$/);
+  if (!matches) return res.status(400).send('Invalid image');
+  
+  const mimeType = matches[1];
+  const buffer = Buffer.from(matches[2], 'base64');
+  res.setHeader('Content-Type', mimeType);
+  res.send(buffer);
+});
+
+// 6. 删除照片
+app.delete('/api/photos/:photoId', async (req, res) => {
   const { photoId } = req.params;
   const { pwd } = req.query;
   
-  // 验证管理员密码
   if (pwd !== ADMIN_PASSWORD) {
     return res.json({ code: 403, msg: '管理员密码错误' });
   }
   
-  const data = readData();
+  const data = await readData();
   const photoIndex = data.photos.findIndex(item => item.id === photoId);
   if (photoIndex === -1) {
     return res.json({ code: 400, msg: '照片不存在' });
   }
   
   const photo = data.photos[photoIndex];
-  // 删除图片文件
-  fs.unlinkSync(path.join(PHOTO_DIR, photo.filename));
-  
-  // 删除照片记录
+  await kv.del(`photo:${photoId}`);
   data.photos.splice(photoIndex, 1);
   
-  // 更新专辑封面（如果删除的是封面）
   const album = data.albums.find(item => item.id === photo.albumId);
   if (album && album.coverUrl === photo.url) {
     const albumPhotos = data.photos.filter(item => item.albumId === photo.albumId);
     album.coverUrl = albumPhotos.length > 0 ? albumPhotos[0].url : '';
   }
   
-  // 删除该照片的所有评论
   data.comments = data.comments.filter(item => item.photoId !== photoId);
-  
-  saveData(data);
+  await saveData(data);
   res.json({ code: 200, msg: '删除成功' });
 });
 
-// 6. 获取照片的评论
-app.get('/api/comments/:photoId', (req, res) => {
+// 7. 获取照片的评论
+app.get('/api/comments/:photoId', async (req, res) => {
   const { photoId } = req.params;
-  const data = readData();
+  const data = await readData();
   const comments = data.comments.filter(item => item.photoId === photoId);
   res.json({ code: 200, data: comments });
 });
 
-// 7. 提交评论
-app.post('/api/comments', (req, res) => {
+// 8. 提交评论
+app.post('/api/comments', async (req, res) => {
   const { photoId, nick, text } = req.body;
   if (!photoId || !text) {
     return res.json({ code: 400, msg: '请填写完整信息' });
   }
   
-  const data = readData();
-  // 检查照片是否存在
+  const data = await readData();
   const photo = data.photos.find(item => item.id === photoId);
   if (!photo) return res.json({ code: 400, msg: '照片不存在' });
   
@@ -193,13 +202,13 @@ app.post('/api/comments', (req, res) => {
     createTime: Date.now()
   };
   data.comments.push(newComment);
-  saveData(data);
+  await saveData(data);
   
   res.json({ code: 200, msg: '评论成功', data: newComment });
 });
 
-// 8. 删除评论
-app.delete('/api/comments/:commentId', (req, res) => {
+// 9. 删除评论
+app.delete('/api/comments/:commentId', async (req, res) => {
   const { commentId } = req.params;
   const { pwd } = req.query;
   
@@ -207,18 +216,18 @@ app.delete('/api/comments/:commentId', (req, res) => {
     return res.json({ code: 403, msg: '管理员密码错误' });
   }
   
-  const data = readData();
+  const data = await readData();
   const commentIndex = data.comments.findIndex(item => item.id === commentId);
   if (commentIndex === -1) {
     return res.json({ code: 400, msg: '评论不存在' });
   }
   
   data.comments.splice(commentIndex, 1);
-  saveData(data);
+  await saveData(data);
   res.json({ code: 200, msg: '删除成功' });
 });
 
-// 9. 验证管理员密码
+// 10. 验证管理员密码
 app.post('/api/verify-admin', (req, res) => {
   const { pwd } = req.body;
   if (pwd === ADMIN_PASSWORD) {
@@ -228,9 +237,7 @@ app.post('/api/verify-admin', (req, res) => {
   }
 });
 
-// 启动服务器
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`服务器启动成功：http://localhost:${PORT}`);
-  console.log(`访问地址：http://localhost:${PORT}`);
 });
