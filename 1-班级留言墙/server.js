@@ -1,13 +1,14 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { kv } = require('@vercel/kv');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // 管理员密码（可自行修改）
 const ADMIN_PASSWORD = '123456';
@@ -109,7 +110,7 @@ app.post('/api/photos', upload.single('photo'), async (req, res) => {
     // 转成Base64存储
     const base64 = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
     const photoId = uuidv4();
-    const photoUrl = `/api/photos/${photoId}`;
+    const photoUrl = `/api/photo/${photoId}`;
     
     const data = await readData();
     const album = data.albums.find(item => item.id === albumId);
@@ -137,7 +138,7 @@ app.post('/api/photos', upload.single('photo'), async (req, res) => {
 });
 
 // 5. 照片接口（返回Base64图片）
-app.get('/api/photos/:photoId', async (req, res) => {
+app.get('/api/photo/:photoId', async (req, res) => {
   try {
     const { photoId } = req.params;
     const base64 = await kv.get(`photo:${photoId}`);
@@ -271,8 +272,10 @@ app.post('/api/verify-admin', (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`服务器启动成功：http://localhost:${PORT}`);
-});
+if (require.main === module) {
+  app.listen(PORT, () => {
+    console.log(`服务器启动成功：http://localhost:${PORT}`);
+  });
+}
 
 module.exports = app;
