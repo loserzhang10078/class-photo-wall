@@ -1,9 +1,17 @@
 {
   "version": 2,
   "builds": [
-    { "src": "server.js", "use": "@vercel/node" }
+    { 
+      "src": "server.js", 
+      "use": "@vercel/node",
+      "config": { "maxLambdaSize": "15mb" } // 增加Lambda大小限制
+    }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/server.js" }
-  ]
+    { "src": "/api/(.*)", "dest": "/server.js" },
+    { "src": "/(.*)", "dest": "/public/index.html" } // 前端路由兜底（如有）
+  ],
+  "env": {
+    "NODE_ENV": "production"
+  }
 }
