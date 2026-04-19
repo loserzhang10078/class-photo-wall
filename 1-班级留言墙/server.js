@@ -3,7 +3,6 @@ const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { createClient } = require('@vercel/kv');
 
 function resolveKvCredentials() {
   const url =
@@ -13,8 +12,33 @@ function resolveKvCredentials() {
   return { url, token };
 }
 
-// 使用 createClient 显式传入，避免默认 kv 代理在缺 env 时抛错导致 FUNCTION_INVOCATION_FAILED
-const { url: KV_URL, token: KV_TOKEN } = resolveKvCredentials();
+// 不依赖 @vercel/kv 包：用内置 fetch 调 Upstash REST，避免线上未安装依赖时报错
+const { url: rawUrl, token: KV_TOKEN } = resolveKvCredentials();
+const KV_URL = rawUrl ? String(rawUrl).replace(/\/$/, '') : '';
+
+async function redisCmd(...args) {
+  const res = await fetch(KV_URL, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${KV_TOKEN}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(args),
+  });
+  const text = await res.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error(text.slice(0, 300));
+  }
+  if (!res.ok) {
+    throw new Error(json.error || json.message || `HTTP ${res.status}`);
+  }
+  if (json.error) throw new Error(json.error);
+  return json.result;
+}
+
 let kv = null;
 let initError = null;
 if (!KV_URL || !KV_TOKEN) {
@@ -22,13 +46,25 @@ if (!KV_URL || !KV_TOKEN) {
     '未检测到 KV：请在 Vercel 本项目下绑定 Upstash Redis，并确认 Production 环境存在 loser_KV_REST_API_URL 与 loser_KV_REST_API_TOKEN（或 KV_REST_API_URL / KV_REST_API_TOKEN）'
   );
 } else {
-  try {
-    process.env.KV_REST_API_URL = KV_URL;
-    process.env.KV_REST_API_TOKEN = KV_TOKEN;
-    kv = createClient({ url: KV_URL, token: KV_TOKEN });
-  } catch (e) {
-    initError = e;
-  }
+  kv = {
+    async get(key) {
+      const raw = await redisCmd('GET', key);
+      if (raw == null || raw === '') return null;
+      if (typeof raw !== 'string') return raw;
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return raw;
+      }
+    },
+    async set(key, value) {
+      const payload = typeof value === 'string' ? value : JSON.stringify(value);
+      return redisCmd('SET', key, payload);
+    },
+    async del(key) {
+      return redisCmd('DEL', key);
+    },
+  };
 }
 
 const app = express();
