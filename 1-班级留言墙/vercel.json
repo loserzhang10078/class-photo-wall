@@ -1,24 +1,23 @@
 {
   "version": 2,
   "builds": [
-    { 
-      "src": "server.js", 
+    {
+      "src": "server.js",
       "use": "@vercel/node@3.0.0",
-      "config": { 
+      "config": {
         "maxLambdaSize": "15mb",
-        "memory": 256,
+        "memory": 512,
         "timeout": 30
       }
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/server.js", "methods": ["GET", "POST", "DELETE", "OPTIONS"] },
-    { "src": "/(.*)", "dest": "/public/index.html" }
+    { "src": "/(.*)", "dest": "/server.js" }
   ],
   "functions": {
     "server.js": {
-      "memory": 256,
-      "timeout": 30
+      "memory": 512,
+      "maxDuration": 30
     }
   }
 }

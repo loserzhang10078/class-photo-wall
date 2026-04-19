@@ -5,8 +5,8 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "nodemon server.js", // 开发环境热重载
-    "vercel-build": "echo 'Build complete'" // Vercel构建钩子
+    "dev": "nodemon server.js",
+    "vercel-build": "echo Build complete"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -17,7 +17,7 @@
   },
   "devDependencies": {
     "@vercel/node": "^3.0.0",
-    "nodemon": "^3.0.1" // 开发依赖
+    "nodemon": "^3.0.1"
   },
   "engines": {
     "node": ">=18.0.0"
