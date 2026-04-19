@@ -3,15 +3,22 @@
   "builds": [
     { 
       "src": "server.js", 
-      "use": "@vercel/node",
-      "config": { "maxLambdaSize": "15mb" } // 增加Lambda大小限制
+      "use": "@vercel/node@3.0.0",
+      "config": { 
+        "maxLambdaSize": "15mb",
+        "memory": 256,
+        "timeout": 30
+      }
     }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "/server.js" },
-    { "src": "/(.*)", "dest": "/public/index.html" } // 前端路由兜底（如有）
+    { "src": "/api/(.*)", "dest": "/server.js", "methods": ["GET", "POST", "DELETE", "OPTIONS"] },
+    { "src": "/(.*)", "dest": "/public/index.html" }
   ],
-  "env": {
-    "NODE_ENV": "production"
+  "functions": {
+    "server.js": {
+      "memory": 256,
+      "timeout": 30
+    }
   }
 }
