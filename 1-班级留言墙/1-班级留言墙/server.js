@@ -1,16 +1,35 @@
-// Vercel KV / Upstash：必须在加载 @vercel/kv 之前写好 env。
-// 若只配置了 loser_ 前缀，用其覆盖；否则保留面板里的 KV_REST_* / KV_URL。
-process.env.KV_REST_API_URL =
-  process.env.loser_KV_REST_API_URL || process.env.KV_REST_API_URL;
-process.env.KV_REST_API_TOKEN =
-  process.env.loser_KV_REST_API_TOKEN || process.env.KV_REST_API_TOKEN;
-
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
-const { kv } = require('@vercel/kv');
+const { createClient } = require('@vercel/kv');
+
+function resolveKvCredentials() {
+  const url =
+    process.env.loser_KV_REST_API_URL || process.env.KV_REST_API_URL;
+  const token =
+    process.env.loser_KV_REST_API_TOKEN || process.env.KV_REST_API_TOKEN;
+  return { url, token };
+}
+
+// 使用 createClient 显式传入，避免默认 kv 代理在缺 env 时抛错导致 FUNCTION_INVOCATION_FAILED
+const { url: KV_URL, token: KV_TOKEN } = resolveKvCredentials();
+let kv = null;
+let initError = null;
+if (!KV_URL || !KV_TOKEN) {
+  initError = new Error(
+    '未检测到 KV：请在 Vercel 本项目下绑定 Upstash Redis，并确认 Production 环境存在 loser_KV_REST_API_URL 与 loser_KV_REST_API_TOKEN（或 KV_REST_API_URL / KV_REST_API_TOKEN）'
+  );
+} else {
+  try {
+    process.env.KV_REST_API_URL = KV_URL;
+    process.env.KV_REST_API_TOKEN = KV_TOKEN;
+    kv = createClient({ url: KV_URL, token: KV_TOKEN });
+  } catch (e) {
+    initError = e;
+  }
+}
 
 const app = express();
 app.use(cors());
@@ -19,7 +38,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // ========== 初始化状态管理 ==========
 let isInitialized = false;
-let initError = null;
 
 // 配置
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || '123456';
@@ -39,6 +57,9 @@ async function withTimeout(promise, timeout = KV_OP_TIMEOUT) {
 }
 
 async function kvOperation(fn, retry = KV_RETRY_TIMES) {
+  if (!kv) {
+    throw new Error(initError ? initError.message : 'KV 未初始化');
+  }
   try {
     return await withTimeout(fn());
   } catch (err) {
@@ -53,6 +74,10 @@ async function kvOperation(fn, retry = KV_RETRY_TIMES) {
 
 // ========== 初始化逻辑 ==========
 async function initData() {
+  if (initError || !kv) {
+    isInitialized = false;
+    return;
+  }
   try {
     const data = await kvOperation(() => kv.get(DATA_KEY));
     if (!data) {

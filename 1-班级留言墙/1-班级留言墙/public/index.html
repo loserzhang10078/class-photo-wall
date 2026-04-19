@@ -4,205 +4,489 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>班级照片留言墙</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0f1419;
-      --panel: #1a2332;
-      --border: #2d3a4d;
-      --text: #e8eef7;
-      --muted: #8b9bb4;
-      --accent: #5b9cf5;
-      --danger: #e85d5d;
-      --ok: #3ecf8e;
+      --bg0: #0c0e12;
+      --bg1: #12151c;
+      --panel: #181c26;
+      --panel2: #1e2330;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.14);
+      --text: #eef1f7;
+      --muted: #8b95a8;
+      --accent: #7c9cff;
+      --accent-dim: rgba(124, 156, 255, 0.15);
+      --danger: #f07178;
+      --ok: #7fd99f;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.35);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --font: "DM Sans", "Segoe UI", system-ui, sans-serif;
     }
     * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
     body {
       margin: 0;
-      font-family: "Segoe UI", system-ui, sans-serif;
-      background: var(--bg);
+      font-family: var(--font);
+      background: radial-gradient(1200px 600px at 10% -10%, rgba(124, 156, 255, 0.12), transparent 50%),
+        radial-gradient(800px 400px at 100% 0%, rgba(127, 217, 159, 0.06), transparent 45%),
+        linear-gradient(180deg, var(--bg0) 0%, var(--bg1) 100%);
       color: var(--text);
       min-height: 100vh;
-      line-height: 1.5;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
     }
+    .app { min-height: 100vh; display: flex; flex-direction: column; }
     header {
-      padding: 1rem 1.25rem;
+      padding: 1rem 1.5rem;
       border-bottom: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 1rem;
       flex-wrap: wrap;
+      background: rgba(12, 14, 18, 0.65);
+      backdrop-filter: blur(12px);
     }
-    h1 { margin: 0; font-size: 1.25rem; font-weight: 600; }
+    .brand { display: flex; align-items: baseline; gap: 0.75rem; flex-wrap: wrap; }
+    h1 {
+      margin: 0;
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      background: linear-gradient(135deg, #fff 0%, #c8d4f0 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .tagline {
+      font-size: 0.8rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
     .toolbar { display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
     button, .btn {
-      background: var(--panel);
-      border: 1px solid var(--border);
+      background: var(--panel2);
+      border: 1px solid var(--border-strong);
       color: var(--text);
-      padding: 0.45rem 0.85rem;
-      border-radius: 8px;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      font-size: 0.9rem;
+      font-size: 0.875rem;
+      font-family: inherit;
+      font-weight: 500;
+      transition: border-color 0.15s, background 0.15s, transform 0.1s;
     }
-    button:hover, .btn:hover { border-color: var(--accent); }
-    button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-    button.danger { border-color: var(--danger); color: var(--danger); }
-    main { display: grid; grid-template-columns: 260px 1fr; min-height: calc(100vh - 61px); }
-    @media (max-width: 800px) {
+    button:focus-visible, .btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 2px;
+    }
+    button:hover:not(:disabled), .btn:hover:not(:disabled) {
+      border-color: rgba(124, 156, 255, 0.45);
+      background: var(--panel);
+    }
+    button:active:not(:disabled) { transform: scale(0.98); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    button.primary {
+      background: linear-gradient(135deg, #6b8cff 0%, #5577ee 100%);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 4px 14px rgba(85, 119, 238, 0.35);
+    }
+    button.primary:hover:not(:disabled) {
+      filter: brightness(1.06);
+      border-color: transparent;
+    }
+    button.danger {
+      border-color: rgba(240, 113, 120, 0.45);
+      color: #ffc9cc;
+      background: rgba(240, 113, 120, 0.1);
+    }
+    main {
+      display: grid;
+      grid-template-columns: minmax(240px, 280px) 1fr;
+      flex: 1;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    @media (max-width: 840px) {
       main { grid-template-columns: 1fr; }
+      aside { border-right: none; border-bottom: 1px solid var(--border); }
     }
     aside {
       border-right: 1px solid var(--border);
-      padding: 1rem;
-      background: #121a24;
+      padding: 1.25rem;
+      background: rgba(24, 28, 38, 0.5);
+    }
+    .sidebar-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.75rem;
+    }
+    .sidebar-head span {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      font-weight: 600;
+    }
+    .count-pill {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.45rem;
+      border-radius: 999px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      font-weight: 600;
     }
     .album-list { list-style: none; padding: 0; margin: 0; }
     .album-list li {
-      padding: 0.6rem 0.75rem;
-      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      padding: 0.65rem 0.75rem;
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      margin-bottom: 0.35rem;
+      margin-bottom: 0.4rem;
       border: 1px solid transparent;
+      transition: background 0.15s, border-color 0.15s;
     }
-    .album-list li:hover { background: var(--panel); }
-    .album-list li.active { border-color: var(--accent); background: var(--panel); }
+    .album-list li:hover { background: rgba(255, 255, 255, 0.04); }
+    .album-list li.active {
+      border-color: rgba(124, 156, 255, 0.45);
+      background: var(--accent-dim);
+    }
+    .album-list li span:last-child {
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 500;
+    }
     .album-cover {
-      width: 40px; height: 40px; border-radius: 6px; object-fit: cover;
-      vertical-align: middle; margin-right: 0.5rem; background: var(--border);
+      width: 44px;
+      height: 44px;
+      border-radius: 8px;
+      object-fit: cover;
+      margin-right: 0.65rem;
+      background: var(--panel2);
+      border: 1px solid var(--border);
+      flex-shrink: 0;
     }
-    section.content { padding: 1rem 1.25rem; }
+    section.content {
+      padding: 1.25rem 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      min-height: 320px;
+    }
+    .content-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      flex-wrap: wrap;
+      margin-bottom: 1rem;
+    }
+    .current-pill {
+      font-size: 0.875rem;
+      color: var(--muted);
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255, 255, 255, 0.03);
+      max-width: 100%;
+    }
+    .current-pill strong { color: var(--text); font-weight: 600; }
     .photos {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-      gap: 0.75rem;
+      grid-template-columns: repeat(auto-fill, minmax(148px, 1fr));
+      gap: 1rem;
     }
     .photo-card {
       position: relative;
-      border-radius: 10px;
+      border-radius: var(--radius);
       overflow: hidden;
       border: 1px solid var(--border);
       cursor: pointer;
       background: var(--panel);
+      box-shadow: var(--shadow);
+      transition: transform 0.2s ease, border-color 0.2s;
+    }
+    .photo-card:hover {
+      transform: translateY(-3px);
+      border-color: rgba(124, 156, 255, 0.35);
     }
     .photo-card img {
-      width: 100%; aspect-ratio: 1; object-fit: cover; display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      object-fit: cover;
+      display: block;
     }
     .photo-card .del {
-      position: absolute; top: 6px; right: 6px;
-      padding: 2px 8px; font-size: 0.75rem;
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      padding: 4px 10px;
+      font-size: 0.72rem;
+      border-radius: 6px;
+      backdrop-filter: blur(8px);
+    }
+    .status-bar {
+      margin-top: auto;
+      padding-top: 1.25rem;
     }
     .log {
-      margin-top: 1rem; padding: 0.75rem;
-      border-radius: 8px; background: var(--panel);
-      border: 1px solid var(--border);
-      font-size: 0.85rem; color: var(--muted);
-      min-height: 2.5rem;
-    }
-    .log.error { color: #ffb4b4; border-color: #5c2d2d; }
-    .log.success { color: #a8f5cf; border-color: #1f4d3a; }
-    .panel-box {
-      margin-top: 1rem; padding: 1rem;
-      border: 1px dashed var(--border);
-      border-radius: 10px;
-    }
-    .panel-box h3 { margin: 0 0 0.75rem; font-size: 1rem; }
-    input, textarea, select {
-      width: 100%; max-width: 420px;
-      padding: 0.5rem 0.65rem;
-      border-radius: 8px;
-      border: 1px solid var(--border);
-      background: var(--bg);
-      color: var(--text);
-      margin-bottom: 0.5rem;
-    }
-    textarea { min-height: 72px; resize: vertical; }
-    .modal-bg {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.55); z-index: 50;
-      align-items: center; justify-content: center; padding: 1rem;
-    }
-    .modal-bg.show { display: flex; }
-    .modal {
+      padding: 0.85rem 1rem;
+      border-radius: var(--radius-sm);
       background: var(--panel);
       border: 1px solid var(--border);
-      border-radius: 12px;
-      max-width: 480px; width: 100%;
-      padding: 1.25rem;
+      font-size: 0.82rem;
+      color: var(--muted);
+      min-height: 3rem;
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      line-height: 1.45;
     }
-    .modal h2 { margin: 0 0 1rem; font-size: 1.1rem; }
-    .comments { margin-top: 0.75rem; max-height: 220px; overflow-y: auto; }
-    .comment {
-      padding: 0.5rem 0; border-bottom: 1px solid var(--border);
+    .log::before {
+      content: "ℹ";
+      flex-shrink: 0;
+      opacity: 0.7;
+      font-size: 1rem;
+    }
+    .log.error { color: #ffb8b8; border-color: rgba(240, 113, 120, 0.35); background: rgba(240, 113, 120, 0.08); }
+    .log.error::before { content: "!"; color: var(--danger); font-weight: 700; }
+    .log.success { color: #b8f0cc; border-color: rgba(127, 217, 159, 0.35); background: rgba(127, 217, 159, 0.08); }
+    .log.success::before { content: "✓"; color: var(--ok); }
+    .panel-box {
+      margin-bottom: 1rem;
+      padding: 1.1rem 1.15rem;
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.02);
+    }
+    .panel-box h3 {
+      margin: 0 0 0.85rem;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .file-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+    input[type="file"] {
+      font-size: 0.8rem;
+      color: var(--muted);
+      max-width: 100%;
+    }
+    input, textarea, select {
+      width: 100%;
+      max-width: 100%;
+      padding: 0.6rem 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-strong);
+      background: var(--bg0);
+      color: var(--text);
+      margin-bottom: 0.5rem;
+      font-family: inherit;
       font-size: 0.9rem;
     }
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: rgba(124, 156, 255, 0.5);
+      box-shadow: 0 0 0 3px var(--accent-dim);
+    }
+    textarea { min-height: 88px; resize: vertical; }
+    .btn-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 0.5rem; }
+    .modal-bg {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 8, 12, 0.72);
+      backdrop-filter: blur(6px);
+      z-index: 50;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      animation: fadeIn 0.2s ease;
+    }
+    .modal-bg.show { display: flex; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .modal {
+      background: var(--panel);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius);
+      max-width: 480px;
+      width: 100%;
+      padding: 0;
+      box-shadow: var(--shadow), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+      max-height: min(92vh, 720px);
+      display: flex;
+      flex-direction: column;
+      animation: slideUp 0.25s ease;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .modal-h {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1rem 1.15rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .modal-h h2 { margin: 0; font-size: 1.05rem; font-weight: 600; }
+    .modal-close {
+      width: 32px;
+      height: 32px;
+      border: none;
+      background: transparent;
+      color: var(--muted);
+      font-size: 1.35rem;
+      line-height: 1;
+      cursor: pointer;
+      border-radius: 6px;
+      padding: 0;
+    }
+    .modal-close:hover { color: var(--text); background: rgba(255, 255, 255, 0.06); }
+    .modal-body { padding: 1.15rem; overflow-y: auto; }
+    .comments {
+      margin: 0.75rem 0;
+      max-height: 200px;
+      overflow-y: auto;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      background: var(--bg0);
+      padding: 0.5rem 0.75rem;
+    }
+    .comment {
+      padding: 0.55rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.88rem;
+    }
+    .comment:last-child { border-bottom: none; }
     .comment .nick { color: var(--accent); font-weight: 600; }
-    .empty { color: var(--muted); padding: 2rem; text-align: center; }
+    .empty {
+      color: var(--muted);
+      padding: 2.5rem 1.5rem;
+      text-align: center;
+      border: 1px dashed var(--border);
+      border-radius: var(--radius);
+      background: rgba(255, 255, 255, 0.02);
+      font-size: 0.9rem;
+    }
+    .empty::before {
+      content: "🖼";
+      display: block;
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      opacity: 0.6;
+    }
   </style>
 </head>
 <body>
-  <header>
-    <h1>班级照片留言墙</h1>
-    <div class="toolbar">
-      <button type="button" id="btnAdmin">管理员</button>
-      <button type="button" class="primary" id="btnNewAlbum">新建专辑</button>
-    </div>
-  </header>
-  <main>
-    <aside>
-      <p style="margin:0 0 .5rem;color:var(--muted);font-size:.85rem;">专辑列表</p>
-      <ul class="album-list" id="albumList"></ul>
-    </aside>
-    <section class="content">
-      <div class="toolbar" style="margin-bottom:1rem;">
-        <button type="button" class="primary" id="btnUpload" disabled>上传照片</button>
-        <span id="currentAlbumLabel" style="color:var(--muted);font-size:.9rem;"></span>
+  <div class="app">
+    <header>
+      <div class="brand">
+        <h1>班级照片留言墙</h1>
+        <span class="tagline">选专辑 · 传照片 · 留言</span>
       </div>
-      <div id="uploadPanel" class="panel-box" style="display:none;">
-        <h3>上传照片</h3>
-        <input type="file" id="uploadFile" accept="image/jpeg,image/png,image/gif,image/webp" />
-        <div style="margin-top:.5rem;">
-          <button type="button" class="primary" id="btnDoUpload">开始上传</button>
-          <button type="button" id="btnCancelUpload">取消</button>
+      <div class="toolbar">
+        <button type="button" id="btnAdmin">管理员</button>
+        <button type="button" class="primary" id="btnNewAlbum">新建专辑</button>
+      </div>
+    </header>
+    <main>
+      <aside>
+        <div class="sidebar-head">
+          <span>专辑</span>
+          <span class="count-pill" id="albumCount">0</span>
+        </div>
+        <ul class="album-list" id="albumList"></ul>
+      </aside>
+      <section class="content">
+        <div class="content-top">
+          <div class="toolbar">
+            <button type="button" class="primary" id="btnUpload" disabled>上传照片</button>
+          </div>
+          <div class="current-pill" id="currentAlbumWrap" style="display:none;">
+            当前专辑：<strong id="currentAlbumLabel"></strong>
+          </div>
+        </div>
+        <div id="uploadPanel" class="panel-box" style="display:none;">
+          <h3>上传照片</h3>
+          <div class="file-row">
+            <input type="file" id="uploadFile" accept="image/jpeg,image/png,image/gif,image/webp" />
+          </div>
+          <div class="btn-row">
+            <button type="button" class="primary" id="btnDoUpload">开始上传</button>
+            <button type="button" id="btnCancelUpload">取消</button>
+          </div>
+        </div>
+        <div class="photos" id="photoGrid"></div>
+        <div class="status-bar">
+          <div class="log" id="logBox">选择左侧专辑后可浏览照片与留言。</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-bg" id="modalAlbum" role="dialog" aria-modal="true" aria-labelledby="albumModalTitle">
+    <div class="modal">
+      <div class="modal-h">
+        <h2 id="albumModalTitle">新建专辑</h2>
+        <button type="button" class="modal-close" data-close="modalAlbum" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="newAlbumName" placeholder="输入专辑名称" maxlength="40" />
+        <div class="btn-row">
+          <button type="button" class="primary" id="btnCreateAlbum">创建</button>
+          <button type="button" id="btnCloseAlbum">取消</button>
         </div>
       </div>
-      <div class="photos" id="photoGrid"></div>
-      <div class="log" id="logBox">选择左侧专辑后可浏览照片与留言。</div>
-    </section>
-  </main>
+    </div>
+  </div>
 
-  <div class="modal-bg" id="modalAlbum">
+  <div class="modal-bg" id="modalAdmin" role="dialog" aria-modal="true">
     <div class="modal">
-      <h2>新建专辑</h2>
-      <input type="text" id="newAlbumName" placeholder="专辑名称" maxlength="40" />
-      <div>
-        <button type="button" class="primary" id="btnCreateAlbum">创建</button>
-        <button type="button" id="btnCloseAlbum">关闭</button>
+      <div class="modal-h">
+        <h2>管理员验证</h2>
+        <button type="button" class="modal-close" data-close="modalAdmin" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <input type="password" id="adminPwd" placeholder="管理员密码" autocomplete="current-password" />
+        <div class="btn-row">
+          <button type="button" class="primary" id="btnVerifyAdmin">验证</button>
+          <button type="button" id="btnCloseAdmin">取消</button>
+        </div>
       </div>
     </div>
   </div>
 
-  <div class="modal-bg" id="modalAdmin">
-    <div class="modal">
-      <h2>管理员验证</h2>
-      <input type="password" id="adminPwd" placeholder="管理员密码" />
-      <div style="margin-top:.75rem;">
-        <button type="button" class="primary" id="btnVerifyAdmin">验证</button>
-        <button type="button" id="btnCloseAdmin">关闭</button>
-      </div>
-    </div>
-  </div>
-
-  <div class="modal-bg" id="modalPhoto">
+  <div class="modal-bg" id="modalPhoto" role="dialog" aria-modal="true">
     <div class="modal" style="max-width:520px;">
-      <h2>照片与留言</h2>
-      <img id="modalImg" alt="" style="width:100%;max-height:280px;object-fit:contain;border-radius:8px;background:#000;" />
-      <div class="comments" id="commentList"></div>
-      <input type="text" id="commentNick" placeholder="昵称（可选）" maxlength="20" />
-      <textarea id="commentText" placeholder="留言内容" maxlength="500"></textarea>
-      <div>
-        <button type="button" class="primary" id="btnPostComment">发表留言</button>
-        <button type="button" class="danger" id="btnDeletePhoto" style="display:none;">删除照片</button>
-        <button type="button" id="btnClosePhoto">关闭</button>
+      <div class="modal-h">
+        <h2>照片与留言</h2>
+        <button type="button" class="modal-close" data-close="modalPhoto" aria-label="关闭">×</button>
+      </div>
+      <div class="modal-body">
+        <img id="modalImg" alt="" style="width:100%;max-height:280px;object-fit:contain;border-radius:8px;background:#0a0c10;border:1px solid var(--border);" />
+        <div class="comments" id="commentList"></div>
+        <input type="text" id="commentNick" placeholder="昵称（可选）" maxlength="20" />
+        <textarea id="commentText" placeholder="留言内容" maxlength="500"></textarea>
+        <div class="btn-row">
+          <button type="button" class="primary" id="btnPostComment">发表留言</button>
+          <button type="button" class="danger" id="btnDeletePhoto" style="display:none;">删除照片</button>
+          <button type="button" id="btnClosePhoto">关闭</button>
+        </div>
       </div>
     </div>
   </div>
@@ -219,6 +503,23 @@
       logBox.className = 'log' + (type === 'error' ? ' error' : type === 'success' ? ' success' : '');
     }
 
+    function closeModal(id) {
+      document.getElementById(id).classList.remove('show');
+    }
+    document.querySelectorAll('[data-close]').forEach((btn) => {
+      btn.addEventListener('click', () => closeModal(btn.getAttribute('data-close')));
+    });
+    document.querySelectorAll('.modal-bg').forEach((bg) => {
+      bg.addEventListener('click', (e) => {
+        if (e.target === bg) bg.classList.remove('show');
+      });
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        document.querySelectorAll('.modal-bg.show').forEach((m) => m.classList.remove('show'));
+      }
+    });
+
     async function fetchJson(url, opts) {
       const res = await fetch(API_BASE + url, opts);
       const data = await res.json().catch(() => ({}));
@@ -231,9 +532,11 @@
     async function loadAlbums() {
       const data = await fetchJson('/api/albums');
       if (data.code !== 200) throw new Error(data.msg || '加载专辑失败');
+      const list = data.data || [];
+      document.getElementById('albumCount').textContent = String(list.length);
       const ul = document.getElementById('albumList');
       ul.innerHTML = '';
-      (data.data || []).forEach((a) => {
+      list.forEach((a) => {
         const li = document.createElement('li');
         li.dataset.id = a.id;
         const cover = a.coverUrl
@@ -260,7 +563,15 @@
 
     async function selectAlbum(id, name) {
       currentAlbumId = id;
-      document.getElementById('currentAlbumLabel').textContent = name ? '当前：' + name : '';
+      const wrap = document.getElementById('currentAlbumWrap');
+      const label = document.getElementById('currentAlbumLabel');
+      if (name) {
+        wrap.style.display = 'block';
+        label.textContent = name;
+      } else {
+        wrap.style.display = 'none';
+        label.textContent = '';
+      }
       document.getElementById('btnUpload').disabled = !id;
       highlightAlbum();
       await loadPhotos(id);
@@ -273,7 +584,7 @@
       grid.innerHTML = '';
       const photos = data.data || [];
       if (!photos.length) {
-        grid.innerHTML = '<div class="empty">暂无照片，点击上传照片</div>';
+        grid.innerHTML = '<div class="empty">还没有照片，点击上方「上传照片」添加</div>';
         return;
       }
       photos.forEach((p) => {
@@ -288,7 +599,7 @@
           const del = document.createElement('button');
           del.className = 'del danger';
           del.type = 'button';
-          del.textContent = '删';
+          del.textContent = '删除';
           del.addEventListener('click', (e) => {
             e.stopPropagation();
             deletePhoto(p.id);
@@ -310,7 +621,7 @@
       if (res.code === 200) {
         log('已删除', 'success');
         await loadPhotos(currentAlbumId);
-        document.getElementById('modalPhoto').classList.remove('show');
+        closeModal('modalPhoto');
       } else {
         log(res.msg || '删除失败', 'error');
       }
@@ -333,7 +644,7 @@
       const list = document.getElementById('commentList');
       const items = data.data || [];
       if (!items.length) {
-        list.innerHTML = '<div class="comment" style="color:var(--muted)">暂无留言</div>';
+        list.innerHTML = '<div class="comment" style="color:var(--muted)">还没有留言，来写第一条吧</div>';
         return;
       }
       list.innerHTML = items
@@ -343,13 +654,14 @@
               c.nick || '匿名'
             )}</span>：${escapeHtml(c.text)}${
               isAdmin
-                ? ` <button type="button" class="danger" style="padding:2px 6px;font-size:.75rem;" data-del="${c.id}">删</button>`
+                ? ` <button type="button" class="danger" style="padding:2px 8px;font-size:.72rem;" data-del="${c.id}">删</button>`
                 : ''
             }</div>`
         )
         .join('');
       list.querySelectorAll('button[data-del]').forEach((btn) => {
-        btn.addEventListener('click', async () => {
+        btn.addEventListener('click', async (ev) => {
+          ev.stopPropagation();
           const pwd = prompt('管理员密码：');
           if (!pwd) return;
           const cid = btn.getAttribute('data-del');
@@ -385,9 +697,7 @@
       document.getElementById('modalAlbum').classList.add('show');
       document.getElementById('newAlbumName').value = '';
     });
-    document.getElementById('btnCloseAlbum').addEventListener('click', () => {
-      document.getElementById('modalAlbum').classList.remove('show');
-    });
+    document.getElementById('btnCloseAlbum').addEventListener('click', () => closeModal('modalAlbum'));
     document.getElementById('btnCreateAlbum').addEventListener('click', async () => {
       const name = document.getElementById('newAlbumName').value.trim();
       if (!name) return alert('请输入名称');
@@ -397,7 +707,7 @@
         body: JSON.stringify({ name }),
       });
       if (res.code === 200) {
-        document.getElementById('modalAlbum').classList.remove('show');
+        closeModal('modalAlbum');
         await loadAlbums();
         if (res.data && res.data.id) await selectAlbum(res.data.id, res.data.name);
         log('专辑已创建', 'success');
@@ -440,9 +750,7 @@
     document.getElementById('btnAdmin').addEventListener('click', () => {
       document.getElementById('modalAdmin').classList.add('show');
     });
-    document.getElementById('btnCloseAdmin').addEventListener('click', () => {
-      document.getElementById('modalAdmin').classList.remove('show');
-    });
+    document.getElementById('btnCloseAdmin').addEventListener('click', () => closeModal('modalAdmin'));
     document.getElementById('btnVerifyAdmin').addEventListener('click', async () => {
       const pwd = document.getElementById('adminPwd').value;
       const res = await fetchJson('/api/verify-admin', {
@@ -452,15 +760,13 @@
       });
       if (res.code === 200) {
         isAdmin = true;
-        document.getElementById('modalAdmin').classList.remove('show');
+        closeModal('modalAdmin');
         log('管理员已登录，可删除内容', 'success');
         if (currentAlbumId) await loadPhotos(currentAlbumId);
       } else alert(res.msg || '密码错误');
     });
 
-    document.getElementById('btnClosePhoto').addEventListener('click', () => {
-      document.getElementById('modalPhoto').classList.remove('show');
-    });
+    document.getElementById('btnClosePhoto').addEventListener('click', () => closeModal('modalPhoto'));
     document.getElementById('btnDeletePhoto').addEventListener('click', () => {
       if (currentPhotoId) deletePhoto(currentPhotoId);
     });
